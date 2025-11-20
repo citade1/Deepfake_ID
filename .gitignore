@@ -1,0 +1,25 @@
+# virtual env
+venv/
+.venv/
+
+# python cache
+__pycache__/
+*.pyc
+
+# jupyter checkpoints
+.ipynb_checkpoints/
+
+# environment variables
+.env
+
+# model & dataset cache
+models/
+*.pt
+*.safetensors
+
+data/
+*.zip
+
+# HuggingFace cache
+~/.cache/huggingface/
+hf_cache/
