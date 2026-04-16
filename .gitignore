@@ -23,3 +23,14 @@ data/
 # HuggingFace cache
 ~/.cache/huggingface/
 hf_cache/
+
+# jupyter notebook
+*.ipynb
+
+# IDE
+.claude/
+.vscode/
+.idea/
+
+# mac
+.DS_Store

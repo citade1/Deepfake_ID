@@ -1,4 +1,4 @@
-python==3.10
+# Python 3.10 required
 torch==2.7.1
 torchvision==0.22.1
 numpy==1.26.4
@@ -8,9 +8,9 @@ opencv-python-headless==4.10.0.82
 pandas
 Pillow
 transformers
-imblearn
-evaluate
 datasets
 accelerate
+evaluate
+dlib
+tqdm
 python-dotenv
-
