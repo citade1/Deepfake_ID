@@ -1,42 +1,27 @@
-"""
-DataLoader helpers for the Deepfake-vs-Real-60K HuggingFace dataset.
+"""DataLoaders for the HF dataset prithivMLmods/Deepfake-vs-Real-60K (gated).
 
-Label convention (after flipping):
-    0 = Real
-    1 = Fake
+HF labels {0: Fake, 1: Real} are flipped to our convention 0=Real, 1=Fake.
+The reference bank is a disjoint subset of real images (never used as a query),
+so query LID has no distance-0 self match. See README.
 """
 
 import torch
-from torch.utils.data import DataLoader
 from datasets import load_dataset
+from torch.utils.data import DataLoader
 from transformers import ViTImageProcessor
 
 DATASET_STR = "prithivMLmods/Deepfake-vs-Real-60K"
-
-
-def flip_labels(example: dict) -> dict:
-    """
-    The original dataset has 0=Fake, 1=Real.
-    Flip so 0=Real, 1=Fake for conventional deepfake detection labelling.
-    """
-    example["label"] = 1 - example["label"]
-    return example
+HF_REAL = 1  # raw HF label id for "Real"
 
 
 def make_collate_fn(processor: ViTImageProcessor):
-    """Return a collate function bound to the given processor."""
-
     def collate_fn(batch):
-        images = []
-        for item in batch:
-            img = item["image"]
-            if img.mode != "RGB":
-                img = img.convert("RGB")
-            images.append(img)
-
-        labels = torch.tensor([item["label"] for item in batch], dtype=torch.long)
-        inputs = processor(images=images, return_tensors="pt")
-        return inputs, labels
+        images = [
+            item["image"] if item["image"].mode == "RGB" else item["image"].convert("RGB")
+            for item in batch
+        ]
+        labels = torch.tensor([1 - item["label"] for item in batch], dtype=torch.long)
+        return processor(images=images, return_tensors="pt"), labels
 
     return collate_fn
 
@@ -45,31 +30,44 @@ def get_dataloaders(
     processor: ViTImageProcessor,
     dataset_str: str = DATASET_STR,
     batch_size: int = 32,
+    ref_size: int = 1024,
+    val_frac: float = 0.1,
+    test_frac: float = 0.1,
     num_workers: int = 0,
+    seed: int = 42,
 ):
-    """
-    Load the HuggingFace dataset, flip labels, and return DataLoaders.
+    """Return (train_loader, val_loader, test_loader, ref_loader).
 
-    Returns:
-        train_loader: DataLoader for the training split.
-        test_loader:  DataLoader for the test split, or None if unavailable.
+    Uses the dataset's own test split if present, otherwise carves one from
+    train. ref_loader holds real-only images disjoint from train/val/test.
     """
-    dataset = load_dataset(dataset_str)
-    dataset = dataset.map(flip_labels)
+    ds = load_dataset(dataset_str)
+
+    if "test" in ds:
+        train_full, test_ds = ds["train"], ds["test"]
+    else:
+        sp = ds["train"].train_test_split(
+            test_size=test_frac, seed=seed, stratify_by_column="label")
+        train_full, test_ds = sp["train"], sp["test"]
+
+    real_idx = [i for i, lab in enumerate(train_full["label"]) if lab == HF_REAL]
+    ref_idx = set(real_idx[:ref_size])
+    ref_ds = train_full.select(sorted(ref_idx))
+    query_ds = train_full.select(sorted(set(range(len(train_full))) - ref_idx))
+
+    sp = query_ds.train_test_split(
+        test_size=val_frac, seed=seed, stratify_by_column="label")
+    train_ds, val_ds = sp["train"], sp["test"]
 
     collate_fn = make_collate_fn(processor)
-    loader_kwargs = dict(
-        batch_size=batch_size,
-        collate_fn=collate_fn,
-        num_workers=num_workers,
-        pin_memory=torch.cuda.is_available(),
+    common = dict(batch_size=batch_size, collate_fn=collate_fn,
+                  num_workers=num_workers, pin_memory=torch.cuda.is_available())
+
+    print(f"Splits — train:{len(train_ds)} val:{len(val_ds)} "
+          f"test:{len(test_ds)} ref(real):{len(ref_ds)}")
+    return (
+        DataLoader(train_ds, shuffle=True, **common),
+        DataLoader(val_ds, shuffle=False, **common),
+        DataLoader(test_ds, shuffle=False, **common),
+        DataLoader(ref_ds, shuffle=False, **common),
     )
-
-    train_loader = DataLoader(dataset["train"], shuffle=True, **loader_kwargs)
-
-    if "test" in dataset:
-        test_loader = DataLoader(dataset["test"], shuffle=False, **loader_kwargs)
-    else:
-        test_loader = None
-
-    return train_loader, test_loader
