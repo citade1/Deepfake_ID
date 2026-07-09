@@ -1,45 +1,54 @@
-"""DataLoaders for the HF dataset prithivMLmods/Deepfake-vs-Real-60K (gated).
+"""DataLoaders for TheKernel01/Tiny-GenImage (label 0=Real, 1=Fake native, no
+flip; per-image `generator` tag for cross-generator experiments)."""
 
-HF labels {0: Fake, 1: Real} are flipped to our convention 0=Real, 1=Fake.
-The reference bank is a disjoint subset of real images (never used as a query),
-so query LID has no distance-0 self match. See README.
-"""
+import io
 
 import torch
 from datasets import load_dataset
-from torch.utils.data import DataLoader
-from transformers import ViTImageProcessor
+from PIL import Image
 
-DATASET_STR = "prithivMLmods/Deepfake-vs-Real-60K"
-HF_REAL = 1  # raw HF label id for "Real"
-
-
-def make_collate_fn(processor: ViTImageProcessor):
-    def collate_fn(batch):
-        images = [
-            item["image"] if item["image"].mode == "RGB" else item["image"].convert("RGB")
-            for item in batch
-        ]
-        labels = torch.tensor([1 - item["label"] for item in batch], dtype=torch.long)
-        return processor(images=images, return_tensors="pt"), labels
-
-    return collate_fn
+DATASET_STR = "TheKernel01/Tiny-GenImage"
+HF_REAL = 0  # label id for "Real"
 
 
-def get_dataloaders(
-    processor: ViTImageProcessor,
+class Collate:
+    # Module-level (picklable) so num_workers>0 works with spawn on macOS.
+    # jpeg_quality re-encodes as JPEG at that quality (robustness experiment).
+    def __init__(self, processor, jpeg_quality: int = None):
+        self.processor = processor
+        self.jpeg_quality = jpeg_quality
+
+    def _prep(self, item):
+        im = item["image"]
+        if im.mode != "RGB":
+            im = im.convert("RGB")
+        if self.jpeg_quality is not None:
+            buf = io.BytesIO()
+            im.save(buf, format="JPEG", quality=self.jpeg_quality)
+            buf.seek(0)
+            im = Image.open(buf).convert("RGB")
+        return im
+
+    def __call__(self, batch):
+        images = [self._prep(item) for item in batch]
+        labels = torch.tensor([item["label"] for item in batch], dtype=torch.long)
+        return self.processor(images=images, return_tensors="pt"), labels
+
+
+def make_splits(
     dataset_str: str = DATASET_STR,
-    batch_size: int = 32,
     ref_size: int = 1024,
     val_frac: float = 0.1,
     test_frac: float = 0.1,
-    num_workers: int = 0,
     seed: int = 42,
+    max_train: int = None,
+    max_eval: int = None,
 ):
-    """Return (train_loader, val_loader, test_loader, ref_loader).
+    """Return raw HF datasets (train_ds, val_ds, test_ds, ref_ds).
 
     Uses the dataset's own test split if present, otherwise carves one from
-    train. ref_loader holds real-only images disjoint from train/val/test.
+    train. ref_ds holds real-only images disjoint from train/val/test.
+    max_train / max_eval optionally cap split sizes (memory-limited machines).
     """
     ds = load_dataset(dataset_str)
 
@@ -59,15 +68,7 @@ def get_dataloaders(
         test_size=val_frac, seed=seed, stratify_by_column="label")
     train_ds, val_ds = sp["train"], sp["test"]
 
-    collate_fn = make_collate_fn(processor)
-    common = dict(batch_size=batch_size, collate_fn=collate_fn,
-                  num_workers=num_workers, pin_memory=torch.cuda.is_available())
+    def cap(d, n):
+        return d.shuffle(seed=seed).select(range(min(n, len(d)))) if n else d
 
-    print(f"Splits — train:{len(train_ds)} val:{len(val_ds)} "
-          f"test:{len(test_ds)} ref(real):{len(ref_ds)}")
-    return (
-        DataLoader(train_ds, shuffle=True, **common),
-        DataLoader(val_ds, shuffle=False, **common),
-        DataLoader(test_ds, shuffle=False, **common),
-        DataLoader(ref_ds, shuffle=False, **common),
-    )
+    return cap(train_ds, max_train), cap(val_ds, max_eval), cap(test_ds, max_eval), ref_ds

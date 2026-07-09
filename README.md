@@ -1,97 +1,75 @@
-# Deepfake Detection via Multi-Layer Local Intrinsic Dimensionality
+# Representation Geometry for Real-vs-Generated Image Detection
 
-Detect deepfake images and videos by measuring how the **local intrinsic
-dimension (LID)** of a frozen Vision Transformer's features changes across its
-depth — instead of fine-tuning the backbone on visual artifacts.
+An investigation, not a product: **can the geometry of a task-neutral vision
+backbone's representations separate real from AI-generated images — and if so,
+which geometric property carries the signal, and does it generalize?**
 
-## Results
+Backbone: **CLIP ViT-B/32** (never trained on real/fake labels). Data:
+**Tiny-GenImage** (8 generators, per-image generator tag). The value is the
+investigation — what works, what doesn't, and why — each experiment motivated
+by a paper.
 
-> **Status: pre-training.** The pipeline runs end to end, but the classifier has
-> not yet been trained on the full dataset, so no metrics are reported yet.
-> In-distribution test accuracy / AUC will be added here after the first run.
+## Plan
 
-## Quickstart
+**Stage 1 — Does LID add signal?**
+Baseline: a probe on the frozen CLS features (the raw representation). Augmented:
+the same probe **plus a local intrinsic dimension (LID) signal** taken at the
+intermediate layer where representation ID peaks (Ansuini et al.). If LID adds
+nothing over raw features, it is not the geometric descriptor this task needs.
 
-Requires **Python 3.10**. `dlib` (used for face detection at inference) needs
-CMake and a C++ toolchain — on macOS: `brew install cmake`.
+**Stage 2 — Failure modes (clean probe vs. LID model).**
+1. **JPEG / resize robustness** — the "it's just texture" test (Pope et al.).
+2. **Cross-generator hold-out** — train on some generators, test on unseen ones.
+3. **Trained vs. untrained backbone ablation** — random-init ViT; if geometry
+   still separates, we are reading raw statistics, not learned semantic
+   structure (Ansuini et al.).
 
-```bash
-pip install -r requirements.txt
+**Stage 3 — Subspace reinterpretation (Effort-influenced).**
+LID summarizes *local density* via nearest-neighbor distance ratios. The
+real/fake signal, though, may live in a low-dimensional *subspace* of the
+representation (a near-perfect linear probe is early evidence). Stage 3 explores
+an intrinsic-dimension notion framed as **subspace structure** rather than
+neighbor density — in the spirit of *Effort*, not a reimplementation of it.
 
-# The training dataset is gated — accept its terms on the HF page, then:
-huggingface-cli login
-```
+> **Two different "intrinsic dimensions" (a trap to avoid).** Li et al.,
+> [*Measuring the Intrinsic Dimension of Objective Landscapes*](https://arxiv.org/abs/1804.08838),
+> measure ID in **parameter space** — the smallest random weight-subspace in
+> which a network still solves a task. That is a property of the *objective
+> landscape*, not of the data manifold. LID / TwoNN / Ansuini measure ID of the
+> **data representation** via neighbor geometry. Same name, different space. The
+> subspace intuition motivating Stage 3 comes from the former and transfers by
+> analogy (few dimensions suffice), not by direct application.
 
-**Train** the MLP head (the ViT backbone stays frozen):
+## Findings
 
-```bash
-python train.py                # full run, early stopping on validation AUC
-python train.py --epochs 1     # quick smoke test
-```
+**Stage 1 — LID adds no signal** (CLIP ViT-B/32, in-distribution, cosine):
 
-This saves `checkpoints/lid_classifier.pth` (the trained head + the frozen LID
-reference bank).
+| arm | test AUC |
+| --- | --- |
+| raw CLS | 0.974 |
+| LID only | 0.626 |
+| raw + LID | 0.975 |
 
-**Infer** on a folder of images/videos:
+The signal lives in raw feature *directions*, not local density — LID alone is
+near-chance and adds nothing to the raw probe. The global ID gap (real ≈28 vs
+fake ≈21 at the mid-network ID peak, layer 8/12) does not survive to the
+per-sample level.
 
-```bash
-# put .jpg/.png/.mp4/.avi files (no sub-folders) in ./data
-python inference.py            # writes predictions to submission.csv
-```
+**Stage 2, JPEG** — the raw detector is compression-robust in *ranking* (AUC
+0.97 → ~0.91 at quality 15) but accuracy degrades (0.92 → ~0.72): the signal is
+largely semantic, not fragile texture. Cross-generator is the decisive next test.
 
-> Runs on CPU as-is. Training only updates a small MLP — the heavy ViT is
-> forward-only — so CPU is workable, though a CUDA/MPS device is faster.
-
-## How it works
-
-Most detectors fine-tune a classifier on visual features, asking *what* a face
-looks like. This project instead asks *how the geometry of the representation is
-structured*: my hypothesis is that GAN/diffusion-generated images occupy a
-different manifold than real photographs, measurable as a shift in **local
-intrinsic dimension** — real images tending toward higher-dimensional, more
-complex neighborhoods, generated ones collapsing to lower-dimensional, more
-regular ones.
-
-```
-ViT (frozen)  →  start / middle / end layer CLS tokens
-                        ↓ LID vs. fixed real-image reference bank (k-dim each)
-              concat (3k-dim) → MLP → Real / Fake
-```
-
-- **LID estimation** uses a *k*-NN log-ratio (hill) estimator (Amsaleg et al.,
-  2015); TwoNN (Facco et al., 2017) provides diagnostic global-dimension logs.
-  The per-point log-ratio vector is what the shallow MLP discriminates.
-- **Reference bank.** LID is a property of a point relative to a data manifold,
-  so it is measured against a *fixed* bank of real-image features — a held-out
-  subset of real images, built once and frozen, disjoint from the images being
-  classified. This makes an image's LID feature a deterministic function of the
-  image alone (single-image inference included), and keeps the bank part of the
-  *feature transform* rather than the trained classifier.
-- **Backbone.** `prithivMLmods/Deep-Fake-Detector-v2-Model`, fully frozen; only
-  the MLP head trains. Data is
-  [`prithivMLmods/Deepfake-vs-Real-60K`](https://huggingface.co/datasets/prithivMLmods/Deepfake-vs-Real-60K)
-  (~30k real / ~30k fake, mapped to `0=Real, 1=Fake`).
-
-## Project layout
+## Layout
 
 ```
-train.py                    train the MLP head, build + save the reference bank
-inference.py                face detection (dlib), video sampling, batched LID inference
-utils/model.py              MultiLayerLIDModel: frozen ViT + LID features + MLP
-utils/lid_estimator.py      k-NN log-ratio LID and TwoNN estimators
-utils/dataloader_helper.py  HF dataset loading, label mapping, train/val/test/reference splits
+experiments/id_profile.py       TwoNN ID per CLIP layer -> picks the LID layer
+experiments/stage1_ablation.py  raw vs LID-only vs raw+LID
+experiments/jpeg_robustness.py  JPEG robustness sweep
+utils/lid_estimator.py          k-NN log-ratio LID + TwoNN estimators
+utils/dataloader_helper.py      Tiny-GenImage splits + JPEG collate
 ```
-
-## Limitations & future work
-
-- **Cross-generator generalization is unverified.** The core idea —
-  manifold-level, generator-agnostic detection — needs a leave-one-generator-out
-  evaluation (train on a subset of generators, test on held-out ones, against a
-  CLS-feature baseline). That experiment is not yet run; current scope is
-  in-distribution only.
-- The reference bank is drawn from a single real-image distribution; its effect
-  on calibration across domains is not yet characterized.
 
 ## Status
 
-Active development.
+Stage 1 done (LID refuted as a per-sample signal); Stage 2 JPEG done.
+Cross-generator hold-out and the untrained-backbone ablation are next.
