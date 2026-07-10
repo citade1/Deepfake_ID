@@ -1,6 +1,6 @@
 # Representation Geometry for Real-vs-Generated Image Detection
 
-An investigation, not a product: **can the geometry of a task-neutral vision
+An investigation : **can the geometry of a task-neutral vision
 backbone's representations separate real from AI-generated images — and if so,
 which geometric property carries the signal, and does it generalize?**
 
@@ -43,10 +43,10 @@ neighbor density — in the spirit of *Effort*, not a reimplementation of it.
 ## Findings
 
 Setup: frozen CLIP ViT-B/32, Tiny-GenImage, cosine geometry. AUC means over
-**5 seeds** unless marked † (single-seed diagnostic). Each table names the
+**5 seeds** unless marked (single-seed diagnostic). Each table names the
 experiment that produced it; raw logs are kept under `log/` (untracked).
 
-**ID profile across depth** † (`experiments/id_profile.py`) — Ansuini's
+**ID profile across depth** (`experiments/id_profile.py`) — Ansuini's
 hunchback replicates on CLIP, and real images consistently occupy a *higher*
 local dimension than fakes:
 
