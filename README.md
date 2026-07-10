@@ -42,22 +42,74 @@ neighbor density — in the spirit of *Effort*, not a reimplementation of it.
 
 ## Findings
 
-**Stage 1 — LID adds no signal** (CLIP ViT-B/32, in-distribution, cosine):
+Setup: frozen CLIP ViT-B/32, Tiny-GenImage, cosine geometry. AUC means over
+**5 seeds** unless marked † (single-seed diagnostic). Each table names the
+experiment that produced it; raw logs are kept under `log/` (untracked).
 
-| arm | test AUC |
+**ID profile across depth** † (`experiments/id_profile.py`) — Ansuini's
+hunchback replicates on CLIP, and real images consistently occupy a *higher*
+local dimension than fakes:
+
+| layer (of 12) | 1 | 3 | **7 (peak)** | 8 | 9 | 12 |
+| --- | --- | --- | --- | --- | --- | --- |
+| TwoNN ID, all | 24.1 | 15.2 | **26.4** | 25.1 | 23.8 | 18.8 |
+| ID real / fake | 26.1 / 19.5 | 15.0 / 13.1 | 28.7 / 22.6 | 28.7 / 21.3 | 27.2 / 19.7 | 19.9 / 15.2 |
+
+LID is taken at layer 7 (ID peak); the raw probe at layer 12 (standard readout).
+
+**Stage 1 — does LID add signal?** (`experiments/stage1_ablation.py`, error bars
+`experiments/multiseed.py`) — no. The signal lives in raw feature *directions*,
+not local density; the population-level ID gap above does not survive to
+per-sample:
+
+| probe input | test AUC (in-dist) |
 | --- | --- |
-| raw CLS | 0.974 |
-| LID only | 0.626 |
-| raw + LID | 0.975 |
+| raw CLS (768-d) | 0.9733 ± 0.0003 |
+| LID only (20-d) | 0.6257 ± 0.0002 |
+| raw + LID | 0.9748 ± 0.0003 |
 
-The signal lives in raw feature *directions*, not local density — LID alone is
-near-chance and adds nothing to the raw probe. The global ID gap (real ≈28 vs
-fake ≈21 at the mid-network ID peak, layer 8/12) does not survive to the
-per-sample level.
+**Stage 2.1 — JPEG robustness** (`experiments/jpeg_robustness.py`, error bars
+`experiments/multiseed.py`) — ranking survives compression (largely semantic
+signal, not fragile texture); the 0.5-threshold accuracy degrades
+(0.92 → ~0.72 †), so calibration, not separability, is what compression breaks:
 
-**Stage 2, JPEG** — the raw detector is compression-robust in *ranking* (AUC
-0.97 → ~0.91 at quality 15) but accuracy degrades (0.92 → ~0.72): the signal is
-largely semantic, not fragile texture. Cross-generator is the decisive next test.
+| JPEG quality | clean | 95 | 75 | 50 | 30 | 15 |
+| --- | --- | --- | --- | --- | --- | --- |
+| raw AUC | 0.973 | 0.927 | 0.956 | 0.946 | 0.918 | 0.910 |
+
+**Stage 2.2 — cross-generator, leave-one-generator-out** †
+(`experiments/cross_generator.py`; mean is 5-seed from
+`experiments/selective_lid.py`) — training on 6 generators, testing on the 7th.
+Partial generalization: a stable mean of **0.906 ± 0.003** vs 0.974 in-dist,
+with the architecturally distinct generators (VQDM, ADM) hardest:
+
+| held-out | ADM | BigGAN | GLIDE | Midjourney | SD15 | VQDM | Wukong | mean |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| raw AUC | 0.852 | 0.970 | 0.992 | 0.913 | 0.934 | **0.790** | 0.884 | **0.906** |
+| raw+LID AUC | 0.859 | 0.979 | 0.993 | 0.911 | 0.936 | 0.790 | 0.889 | 0.908 |
+
+**Stage 2.3 — trained vs. untrained backbone**
+(`experiments/untrained_ablation.py`, error bars `experiments/multiseed.py`) —
+a random-init CLIP barely separates: the signal is training-induced semantics,
+not raw image statistics (the ~0.11-above-chance residual is architectural):
+
+| backbone | raw | LID | raw+LID |
+| --- | --- | --- | --- |
+| trained CLIP | 0.9733 ± 0.0003 | 0.6257 ± 0.0002 | 0.9748 ± 0.0003 |
+| random init | 0.6143 ± 0.0026 | 0.5385 ± 0.0018 | 0.6201 ± 0.0014 |
+
+**Stage 2.4 — selective LID** (`experiments/selective_lid.py`) — LID's residual
+signal is real but *localized*: out-of-distribution it concentrates on the
+raw-uncertain tail, yet does not move the detector-level numbers. A
+confidence-gated detector (`utils/selective.py`, raw+LID re-scores the least
+confident 20%) stays within noise overall:
+
+| metric (held-out generators, 5 seeds) | value |
+| --- | --- |
+| AUC gain on hardest 10% (by raw confidence) | **+0.067 ± 0.020** |
+| AUC gain on hardest 20% | +0.039 ± 0.012 |
+| deployed AUC, raw → selective | 0.906 → 0.908 (± 0.002, within noise) |
+| deployed accuracy, raw → selective | 0.824 → 0.828 (± 0.003) |
 
 ## Layout
 
@@ -65,11 +117,17 @@ largely semantic, not fragile texture. Cross-generator is the decisive next test
 experiments/id_profile.py       TwoNN ID per CLIP layer -> picks the LID layer
 experiments/stage1_ablation.py  raw vs LID-only vs raw+LID
 experiments/jpeg_robustness.py  JPEG robustness sweep
+experiments/cross_generator.py  leave-one-generator-out generalization
+experiments/untrained_ablation.py  random-init vs trained backbone
+experiments/selective_lid.py    confidence-gated selective LID (OOD, multi-seed)
+experiments/multiseed.py        multi-seed error bars for fixed-feature runs
 utils/lid_estimator.py          k-NN log-ratio LID + TwoNN estimators
+utils/selective.py              confidence-gated SelectiveLID detector
 utils/dataloader_helper.py      Tiny-GenImage splits + JPEG collate
 ```
 
 ## Status
 
-Stage 1 done (LID refuted as a per-sample signal); Stage 2 JPEG done.
-Cross-generator hold-out and the untrained-backbone ablation are next.
+Stage 1 done (LID refuted globally, small signal on low-confidence cases);
+Stage 2 done and multi-seeded (JPEG, cross-generator LOO, untrained backbone,
+selective LID). Stage 3 (Effort-style subspace) next.
