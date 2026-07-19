@@ -1,0 +1,893 @@
+{
+  "backbone": "clip",
+  "seeds": 5,
+  "discriminative": {
+    "pearson_all": 0.8128463984097287,
+    "spearman_all": 0.901652841781874,
+    "pearson_offdiag": 0.7710689728913771,
+    "spearman_offdiag": 0.813105310531053
+  },
+  "generative_baseline": {
+    "pearson_all": 0.8120045640469246,
+    "spearman_all": 0.8784884792626727,
+    "pearson_offdiag": 0.7370551959787971,
+    "spearman_offdiag": 0.7703450345034503
+  },
+  "pairs": [
+    {
+      "train": "GAN",
+      "test": "GAN",
+      "cos_dB_wA": 0.5593766570091248,
+      "cos_dB_dA": 0.9859408140182495,
+      "auc": 0.9936088888888889
+    },
+    {
+      "train": "GAN",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.349485844373703,
+      "cos_dB_dA": 0.5638240575790405,
+      "auc": 0.94045
+    },
+    {
+      "train": "GAN",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.2763243019580841,
+      "cos_dB_dA": 0.4457969069480896,
+      "auc": 0.925641111111111
+    },
+    {
+      "train": "GAN",
+      "test": "Flow",
+      "cos_dB_wA": 0.265805721282959,
+      "cos_dB_dA": 0.6642590761184692,
+      "auc": 0.9312377777777777
+    },
+    {
+      "train": "GAN",
+      "test": "Commercial",
+      "cos_dB_wA": 0.1880733072757721,
+      "cos_dB_dA": 0.38525331020355225,
+      "auc": 0.8664799999999999
+    },
+    {
+      "train": "PixelDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.2935912609100342,
+      "cos_dB_dA": 0.5673271417617798,
+      "auc": 0.9565622222222222
+    },
+    {
+      "train": "PixelDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.6680129766464233,
+      "cos_dB_dA": 0.9928982257843018,
+      "auc": 0.9995477777777778
+    },
+    {
+      "train": "PixelDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.23969170451164246,
+      "cos_dB_dA": 0.42900484800338745,
+      "auc": 0.9472944444444445
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.24738433957099915,
+      "cos_dB_dA": 0.52800452709198,
+      "auc": 0.9426877777777778
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.16561809182167053,
+      "cos_dB_dA": 0.31252872943878174,
+      "auc": 0.8820355555555556
+    },
+    {
+      "train": "LatentDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.2893025279045105,
+      "cos_dB_dA": 0.45721355080604553,
+      "auc": 0.8908
+    },
+    {
+      "train": "LatentDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.33106356859207153,
+      "cos_dB_dA": 0.39178362488746643,
+      "auc": 0.9333066666666665
+    },
+    {
+      "train": "LatentDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.5458108186721802,
+      "cos_dB_dA": 0.9876444339752197,
+      "auc": 0.99736
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.31529897451400757,
+      "cos_dB_dA": 0.6827194690704346,
+      "auc": 0.8926988888888889
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.43320295214653015,
+      "cos_dB_dA": 0.8294416666030884,
+      "auc": 0.980381111111111
+    },
+    {
+      "train": "Flow",
+      "test": "GAN",
+      "cos_dB_wA": 0.28806576132774353,
+      "cos_dB_dA": 0.6642400026321411,
+      "auc": 0.9307444444444445
+    },
+    {
+      "train": "Flow",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.2827412188053131,
+      "cos_dB_dA": 0.4874451458454132,
+      "auc": 0.9278155555555555
+    },
+    {
+      "train": "Flow",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.4327425956726074,
+      "cos_dB_dA": 0.6924061179161072,
+      "auc": 0.9889133333333334
+    },
+    {
+      "train": "Flow",
+      "test": "Flow",
+      "cos_dB_wA": 0.5255439281463623,
+      "cos_dB_dA": 0.9827712774276733,
+      "auc": 0.9920288888888888
+    },
+    {
+      "train": "Flow",
+      "test": "Commercial",
+      "cos_dB_wA": 0.46691322326660156,
+      "cos_dB_dA": 0.8006013631820679,
+      "auc": 0.98729
+    },
+    {
+      "train": "Commercial",
+      "test": "GAN",
+      "cos_dB_wA": 0.22421865165233612,
+      "cos_dB_dA": 0.4194797873497009,
+      "auc": 0.8063233333333333
+    },
+    {
+      "train": "Commercial",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.19086670875549316,
+      "cos_dB_dA": 0.31882864236831665,
+      "auc": 0.787521111111111
+    },
+    {
+      "train": "Commercial",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.43029430508613586,
+      "cos_dB_dA": 0.8209257125854492,
+      "auc": 0.9823011111111112
+    },
+    {
+      "train": "Commercial",
+      "test": "Flow",
+      "cos_dB_wA": 0.40337038040161133,
+      "cos_dB_dA": 0.7894951701164246,
+      "auc": 0.9299955555555556
+    },
+    {
+      "train": "Commercial",
+      "test": "Commercial",
+      "cos_dB_wA": 0.5216132402420044,
+      "cos_dB_dA": 0.9879918098449707,
+      "auc": 0.9924288888888889
+    },
+    {
+      "train": "GAN",
+      "test": "GAN",
+      "cos_dB_wA": 0.5551241636276245,
+      "cos_dB_dA": 0.9887426495552063,
+      "auc": 0.9954877777777777
+    },
+    {
+      "train": "GAN",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.33548977971076965,
+      "cos_dB_dA": 0.5678361654281616,
+      "auc": 0.9596177777777779
+    },
+    {
+      "train": "GAN",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.28303900361061096,
+      "cos_dB_dA": 0.44714730978012085,
+      "auc": 0.9357777777777778
+    },
+    {
+      "train": "GAN",
+      "test": "Flow",
+      "cos_dB_wA": 0.2768048942089081,
+      "cos_dB_dA": 0.679128885269165,
+      "auc": 0.9251966666666667
+    },
+    {
+      "train": "GAN",
+      "test": "Commercial",
+      "cos_dB_wA": 0.1908356249332428,
+      "cos_dB_dA": 0.4190768599510193,
+      "auc": 0.8719811111111111
+    },
+    {
+      "train": "PixelDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.29180485010147095,
+      "cos_dB_dA": 0.5715984106063843,
+      "auc": 0.9512033333333334
+    },
+    {
+      "train": "PixelDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.6602843999862671,
+      "cos_dB_dA": 0.9918888807296753,
+      "auc": 0.9998355555555555
+    },
+    {
+      "train": "PixelDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.22761082649230957,
+      "cos_dB_dA": 0.4187052249908447,
+      "auc": 0.9374544444444445
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.2294722944498062,
+      "cos_dB_dA": 0.5205991268157959,
+      "auc": 0.9290266666666667
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.1600027084350586,
+      "cos_dB_dA": 0.33471035957336426,
+      "auc": 0.8735955555555555
+    },
+    {
+      "train": "LatentDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.2753845453262329,
+      "cos_dB_dA": 0.4452893137931824,
+      "auc": 0.8911222222222224
+    },
+    {
+      "train": "LatentDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.3292982578277588,
+      "cos_dB_dA": 0.398449182510376,
+      "auc": 0.9367388888888889
+    },
+    {
+      "train": "LatentDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.5508540272712708,
+      "cos_dB_dA": 0.9879716634750366,
+      "auc": 0.9969466666666666
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.3127285838127136,
+      "cos_dB_dA": 0.689633846282959,
+      "auc": 0.9244822222222222
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.4335848093032837,
+      "cos_dB_dA": 0.8312522172927856,
+      "auc": 0.9777166666666666
+    },
+    {
+      "train": "Flow",
+      "test": "GAN",
+      "cos_dB_wA": 0.25449371337890625,
+      "cos_dB_dA": 0.6779038906097412,
+      "auc": 0.9311666666666668
+    },
+    {
+      "train": "Flow",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.26555418968200684,
+      "cos_dB_dA": 0.49735909700393677,
+      "auc": 0.916641111111111
+    },
+    {
+      "train": "Flow",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.41591233015060425,
+      "cos_dB_dA": 0.6729385852813721,
+      "auc": 0.9792811111111112
+    },
+    {
+      "train": "Flow",
+      "test": "Flow",
+      "cos_dB_wA": 0.5251200199127197,
+      "cos_dB_dA": 0.9862606525421143,
+      "auc": 0.9864744444444444
+    },
+    {
+      "train": "Flow",
+      "test": "Commercial",
+      "cos_dB_wA": 0.45165693759918213,
+      "cos_dB_dA": 0.7872044444084167,
+      "auc": 0.9797399999999999
+    },
+    {
+      "train": "Commercial",
+      "test": "GAN",
+      "cos_dB_wA": 0.21618863940238953,
+      "cos_dB_dA": 0.38713937997817993,
+      "auc": 0.8054899999999999
+    },
+    {
+      "train": "Commercial",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.20577821135520935,
+      "cos_dB_dA": 0.30342549085617065,
+      "auc": 0.8053455555555556
+    },
+    {
+      "train": "Commercial",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.4252081513404846,
+      "cos_dB_dA": 0.8162827491760254,
+      "auc": 0.9857122222222222
+    },
+    {
+      "train": "Commercial",
+      "test": "Flow",
+      "cos_dB_wA": 0.39284569025039673,
+      "cos_dB_dA": 0.7787767648696899,
+      "auc": 0.9521211111111112
+    },
+    {
+      "train": "Commercial",
+      "test": "Commercial",
+      "cos_dB_wA": 0.5032324194908142,
+      "cos_dB_dA": 0.9840809106826782,
+      "auc": 0.9904855555555555
+    },
+    {
+      "train": "GAN",
+      "test": "GAN",
+      "cos_dB_wA": 0.5521186590194702,
+      "cos_dB_dA": 0.986572802066803,
+      "auc": 0.9936633333333335
+    },
+    {
+      "train": "GAN",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.32734835147857666,
+      "cos_dB_dA": 0.5807093977928162,
+      "auc": 0.9502444444444446
+    },
+    {
+      "train": "GAN",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.2992011606693268,
+      "cos_dB_dA": 0.46851491928100586,
+      "auc": 0.9314577777777777
+    },
+    {
+      "train": "GAN",
+      "test": "Flow",
+      "cos_dB_wA": 0.2849227488040924,
+      "cos_dB_dA": 0.6472811698913574,
+      "auc": 0.9066022222222221
+    },
+    {
+      "train": "GAN",
+      "test": "Commercial",
+      "cos_dB_wA": 0.21159620583057404,
+      "cos_dB_dA": 0.41556689143180847,
+      "auc": 0.8745311111111111
+    },
+    {
+      "train": "PixelDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.2936973571777344,
+      "cos_dB_dA": 0.581444501876831,
+      "auc": 0.9397311111111111
+    },
+    {
+      "train": "PixelDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.6573123931884766,
+      "cos_dB_dA": 0.9923325777053833,
+      "auc": 0.9992022222222222
+    },
+    {
+      "train": "PixelDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.23844408988952637,
+      "cos_dB_dA": 0.4332568645477295,
+      "auc": 0.9101800000000001
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.25584304332733154,
+      "cos_dB_dA": 0.5219683647155762,
+      "auc": 0.9091033333333334
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.1748467981815338,
+      "cos_dB_dA": 0.35433632135391235,
+      "auc": 0.8594355555555556
+    },
+    {
+      "train": "LatentDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.2805464267730713,
+      "cos_dB_dA": 0.4495644271373749,
+      "auc": 0.8886266666666666
+    },
+    {
+      "train": "LatentDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.3199908137321472,
+      "cos_dB_dA": 0.426330029964447,
+      "auc": 0.9323744444444444
+    },
+    {
+      "train": "LatentDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.547621488571167,
+      "cos_dB_dA": 0.9890081286430359,
+      "auc": 0.99601
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.34561312198638916,
+      "cos_dB_dA": 0.7237026691436768,
+      "auc": 0.9345988888888889
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.4204100966453552,
+      "cos_dB_dA": 0.8196259140968323,
+      "auc": 0.9775544444444444
+    },
+    {
+      "train": "Flow",
+      "test": "GAN",
+      "cos_dB_wA": 0.2803986966609955,
+      "cos_dB_dA": 0.6887093782424927,
+      "auc": 0.9353111111111111
+    },
+    {
+      "train": "Flow",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.2829621434211731,
+      "cos_dB_dA": 0.532651424407959,
+      "auc": 0.9319133333333333
+    },
+    {
+      "train": "Flow",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.43895673751831055,
+      "cos_dB_dA": 0.6877923607826233,
+      "auc": 0.9814644444444445
+    },
+    {
+      "train": "Flow",
+      "test": "Flow",
+      "cos_dB_wA": 0.544624924659729,
+      "cos_dB_dA": 0.9766501784324646,
+      "auc": 0.9884844444444444
+    },
+    {
+      "train": "Flow",
+      "test": "Commercial",
+      "cos_dB_wA": 0.4653123617172241,
+      "cos_dB_dA": 0.7825707197189331,
+      "auc": 0.981388888888889
+    },
+    {
+      "train": "Commercial",
+      "test": "GAN",
+      "cos_dB_wA": 0.2105032205581665,
+      "cos_dB_dA": 0.40405625104904175,
+      "auc": 0.8231833333333333
+    },
+    {
+      "train": "Commercial",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.1935226023197174,
+      "cos_dB_dA": 0.3277772068977356,
+      "auc": 0.8108311111111111
+    },
+    {
+      "train": "Commercial",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.4282100796699524,
+      "cos_dB_dA": 0.8282544612884521,
+      "auc": 0.9845077777777776
+    },
+    {
+      "train": "Commercial",
+      "test": "Flow",
+      "cos_dB_wA": 0.425647109746933,
+      "cos_dB_dA": 0.835899829864502,
+      "auc": 0.9570722222222221
+    },
+    {
+      "train": "Commercial",
+      "test": "Commercial",
+      "cos_dB_wA": 0.5049268007278442,
+      "cos_dB_dA": 0.9867061376571655,
+      "auc": 0.9906677777777778
+    },
+    {
+      "train": "GAN",
+      "test": "GAN",
+      "cos_dB_wA": 0.5445135831832886,
+      "cos_dB_dA": 0.9875274896621704,
+      "auc": 0.9970466666666666
+    },
+    {
+      "train": "GAN",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.32758641242980957,
+      "cos_dB_dA": 0.5869258046150208,
+      "auc": 0.9638688888888889
+    },
+    {
+      "train": "GAN",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.2663145065307617,
+      "cos_dB_dA": 0.45188355445861816,
+      "auc": 0.9421477777777778
+    },
+    {
+      "train": "GAN",
+      "test": "Flow",
+      "cos_dB_wA": 0.25650060176849365,
+      "cos_dB_dA": 0.6822788715362549,
+      "auc": 0.9256633333333334
+    },
+    {
+      "train": "GAN",
+      "test": "Commercial",
+      "cos_dB_wA": 0.19758853316307068,
+      "cos_dB_dA": 0.43057867884635925,
+      "auc": 0.8889933333333333
+    },
+    {
+      "train": "PixelDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.2976991534233093,
+      "cos_dB_dA": 0.5530616044998169,
+      "auc": 0.9704511111111112
+    },
+    {
+      "train": "PixelDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.6459720134735107,
+      "cos_dB_dA": 0.9900926351547241,
+      "auc": 0.9998877777777778
+    },
+    {
+      "train": "PixelDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.23083825409412384,
+      "cos_dB_dA": 0.3950001299381256,
+      "auc": 0.9502744444444443
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.2322387397289276,
+      "cos_dB_dA": 0.4869638681411743,
+      "auc": 0.9411033333333333
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.17126232385635376,
+      "cos_dB_dA": 0.30474692583084106,
+      "auc": 0.8878844444444445
+    },
+    {
+      "train": "LatentDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.3103523850440979,
+      "cos_dB_dA": 0.45665833353996277,
+      "auc": 0.9064511111111111
+    },
+    {
+      "train": "LatentDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.3318767249584198,
+      "cos_dB_dA": 0.41721242666244507,
+      "auc": 0.9161844444444444
+    },
+    {
+      "train": "LatentDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.5729696154594421,
+      "cos_dB_dA": 0.9861210584640503,
+      "auc": 0.9942822222222222
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.3599581718444824,
+      "cos_dB_dA": 0.7096447348594666,
+      "auc": 0.9365022222222222
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.4782869815826416,
+      "cos_dB_dA": 0.8450520634651184,
+      "auc": 0.98027
+    },
+    {
+      "train": "Flow",
+      "test": "GAN",
+      "cos_dB_wA": 0.29125142097473145,
+      "cos_dB_dA": 0.668465793132782,
+      "auc": 0.9143466666666666
+    },
+    {
+      "train": "Flow",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.27300482988357544,
+      "cos_dB_dA": 0.5174498558044434,
+      "auc": 0.9204933333333333
+    },
+    {
+      "train": "Flow",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.4161963164806366,
+      "cos_dB_dA": 0.6825456023216248,
+      "auc": 0.9763044444444443
+    },
+    {
+      "train": "Flow",
+      "test": "Flow",
+      "cos_dB_wA": 0.5579570531845093,
+      "cos_dB_dA": 0.9866880178451538,
+      "auc": 0.9893466666666667
+    },
+    {
+      "train": "Flow",
+      "test": "Commercial",
+      "cos_dB_wA": 0.46309682726860046,
+      "cos_dB_dA": 0.7940068244934082,
+      "auc": 0.9817777777777779
+    },
+    {
+      "train": "Commercial",
+      "test": "GAN",
+      "cos_dB_wA": 0.2353854477405548,
+      "cos_dB_dA": 0.4162110686302185,
+      "auc": 0.8117311111111111
+    },
+    {
+      "train": "Commercial",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.2153707593679428,
+      "cos_dB_dA": 0.3441067337989807,
+      "auc": 0.8167344444444444
+    },
+    {
+      "train": "Commercial",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.43023619055747986,
+      "cos_dB_dA": 0.8012454509735107,
+      "auc": 0.9811744444444445
+    },
+    {
+      "train": "Commercial",
+      "test": "Flow",
+      "cos_dB_wA": 0.41544806957244873,
+      "cos_dB_dA": 0.799738883972168,
+      "auc": 0.9368211111111111
+    },
+    {
+      "train": "Commercial",
+      "test": "Commercial",
+      "cos_dB_wA": 0.5197482705116272,
+      "cos_dB_dA": 0.9868602156639099,
+      "auc": 0.9891322222222222
+    },
+    {
+      "train": "GAN",
+      "test": "GAN",
+      "cos_dB_wA": 0.5583356618881226,
+      "cos_dB_dA": 0.9881744384765625,
+      "auc": 0.9974511111111111
+    },
+    {
+      "train": "GAN",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.3490868806838989,
+      "cos_dB_dA": 0.5670766830444336,
+      "auc": 0.9733099999999999
+    },
+    {
+      "train": "GAN",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.2752745747566223,
+      "cos_dB_dA": 0.4603461027145386,
+      "auc": 0.9414077777777777
+    },
+    {
+      "train": "GAN",
+      "test": "Flow",
+      "cos_dB_wA": 0.26017647981643677,
+      "cos_dB_dA": 0.6471787095069885,
+      "auc": 0.9315622222222222
+    },
+    {
+      "train": "GAN",
+      "test": "Commercial",
+      "cos_dB_wA": 0.1655099093914032,
+      "cos_dB_dA": 0.39388296008110046,
+      "auc": 0.8646311111111111
+    },
+    {
+      "train": "PixelDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.3049717843532562,
+      "cos_dB_dA": 0.5698338747024536,
+      "auc": 0.9504211111111112
+    },
+    {
+      "train": "PixelDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.6419534683227539,
+      "cos_dB_dA": 0.9859379529953003,
+      "auc": 0.9994911111111111
+    },
+    {
+      "train": "PixelDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.21872128546237946,
+      "cos_dB_dA": 0.41867369413375854,
+      "auc": 0.9356144444444445
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.22579355537891388,
+      "cos_dB_dA": 0.5032160878181458,
+      "auc": 0.9378266666666666
+    },
+    {
+      "train": "PixelDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.1502932757139206,
+      "cos_dB_dA": 0.33300191164016724,
+      "auc": 0.87372
+    },
+    {
+      "train": "LatentDiff",
+      "test": "GAN",
+      "cos_dB_wA": 0.2805655002593994,
+      "cos_dB_dA": 0.41773560643196106,
+      "auc": 0.8817077777777779
+    },
+    {
+      "train": "LatentDiff",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.31952327489852905,
+      "cos_dB_dA": 0.40917983651161194,
+      "auc": 0.9186811111111111
+    },
+    {
+      "train": "LatentDiff",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.5600716471672058,
+      "cos_dB_dA": 0.9888785481452942,
+      "auc": 0.99434
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Flow",
+      "cos_dB_wA": 0.3340763449668884,
+      "cos_dB_dA": 0.6934248208999634,
+      "auc": 0.9418288888888889
+    },
+    {
+      "train": "LatentDiff",
+      "test": "Commercial",
+      "cos_dB_wA": 0.4380183815956116,
+      "cos_dB_dA": 0.8105876445770264,
+      "auc": 0.9701288888888889
+    },
+    {
+      "train": "Flow",
+      "test": "GAN",
+      "cos_dB_wA": 0.2611832022666931,
+      "cos_dB_dA": 0.6458036303520203,
+      "auc": 0.9275555555555555
+    },
+    {
+      "train": "Flow",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.2797812223434448,
+      "cos_dB_dA": 0.5110801458358765,
+      "auc": 0.9238388888888889
+    },
+    {
+      "train": "Flow",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.42821183800697327,
+      "cos_dB_dA": 0.7027722597122192,
+      "auc": 0.9781977777777777
+    },
+    {
+      "train": "Flow",
+      "test": "Flow",
+      "cos_dB_wA": 0.5572490692138672,
+      "cos_dB_dA": 0.9864733219146729,
+      "auc": 0.9910577777777777
+    },
+    {
+      "train": "Flow",
+      "test": "Commercial",
+      "cos_dB_wA": 0.47226864099502563,
+      "cos_dB_dA": 0.802318274974823,
+      "auc": 0.9752566666666668
+    },
+    {
+      "train": "Commercial",
+      "test": "GAN",
+      "cos_dB_wA": 0.18760348856449127,
+      "cos_dB_dA": 0.39118456840515137,
+      "auc": 0.7973366666666666
+    },
+    {
+      "train": "Commercial",
+      "test": "PixelDiff",
+      "cos_dB_wA": 0.20684416592121124,
+      "cos_dB_dA": 0.3295811116695404,
+      "auc": 0.8429388888888889
+    },
+    {
+      "train": "Commercial",
+      "test": "LatentDiff",
+      "cos_dB_wA": 0.44162845611572266,
+      "cos_dB_dA": 0.8229913711547852,
+      "auc": 0.98392
+    },
+    {
+      "train": "Commercial",
+      "test": "Flow",
+      "cos_dB_wA": 0.4293287992477417,
+      "cos_dB_dA": 0.8264034986495972,
+      "auc": 0.9606188888888888
+    },
+    {
+      "train": "Commercial",
+      "test": "Commercial",
+      "cos_dB_wA": 0.5305377244949341,
+      "cos_dB_dA": 0.9877394437789917,
+      "auc": 0.9870333333333333
+    }
+  ]
+}

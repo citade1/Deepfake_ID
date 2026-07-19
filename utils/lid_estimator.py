@@ -1,8 +1,4 @@
-"""LID estimator.
-
-LID is measured against a fixed real-image reference bank, so a sample's
-estimate depends only on itself and single-image inference is valid. See README.
-"""
+"""k-NN log-ratio LID and TwoNN intrinsic-dimension estimators. See README."""
 
 import torch
 
