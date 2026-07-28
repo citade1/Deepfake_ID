@@ -12,7 +12,8 @@ def shrink_cov(X, alpha=0.3):
     Xc = X - X.mean(0)
     S = (Xc.T @ Xc) / max(len(X) - 1, 1)
     d = S.shape[0]
-    return (1 - alpha) * S + alpha * (torch.trace(S) / d) * torch.eye(d)
+    eye = torch.eye(d, dtype=S.dtype, device=S.device)      # match S so solve/inv never mismatch
+    return (1 - alpha) * S + alpha * (torch.trace(S) / d) * eye
 
 
 def axes(real, fake, alpha=0.3):
@@ -21,3 +22,4 @@ def axes(real, fake, alpha=0.3):
     d = fake.mean(0) - real.mean(0)
     S = 0.5 * (shrink_cov(real, alpha) + shrink_cov(fake, alpha))
     return unit(torch.linalg.solve(S, d)), unit(d)
+

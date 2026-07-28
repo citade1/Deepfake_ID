@@ -15,33 +15,16 @@ from huggingface_hub import hf_hub_download
 from PIL import Image
 
 from utils import backbones as B
+from utils.cf_data import family
 
 REPO = {"small": "OwensLab/CommunityForensics-Small", "eval": "OwensLab/CommunityForensics-Eval"}
 CACHE = "./checkpoints/cf_cache"
 DEVICE = ("cuda" if torch.cuda.is_available()
           else "mps" if torch.backends.mps.is_available() else "cpu")
 
-REAL_SOURCES = {"COCO", "LandscapesHQ", "FFHQ", "VISION"}
-
 
 def shard_dir(backbone):
     return f"{CACHE}/{backbone}/shards"
-
-
-def family(gen):
-    g = gen.lower()
-    if gen in REAL_SOURCES:
-        return "REAL"
-    if any(k in g for k in ["midjourney", "dalle", "imagen", "firefly", "ideogram"]):
-        return "Commercial"
-    if "flux" in g or g == "lfm":
-        return "Flow"
-    if any(k in gen for k in ["GAN", "StyleS", "StyleGAN", "ProGAN", "BigGAN", "CIPS",
-                              "Gansformer", "GALIP", "Hourglass", "StyleSwin", "ProjectedGAN"]):
-        return "GAN"
-    if any(k in g for k in ["glide", "guideddiffusion", "vqdiffusion", "deepfloyd", "dit", "taming"]):
-        return "PixelDiff"
-    return "LatentDiff"
 
 
 def basename(path_or_cache):

@@ -6,25 +6,10 @@ import random
 
 import torch
 
-REAL_SOURCES = {"COCO", "LandscapesHQ", "FFHQ", "VISION"}
+from utils.cf_data import family
+
 FACE_SOURCE = "FFHQ"
 DEFAULT_FAKE = {"GAN": 1500, "PixelDiff": 2500, "LatentDiff": 6000, "Flow": 3000, "Commercial": 3000}
-
-
-def family(gen):
-    g = gen.lower()
-    if gen in REAL_SOURCES:
-        return "REAL"
-    if any(k in g for k in ["midjourney", "dalle", "imagen", "firefly", "ideogram"]):
-        return "Commercial"
-    if "flux" in g or g == "lfm":
-        return "Flow"
-    if any(k in gen for k in ["GAN", "StyleS", "StyleGAN", "ProGAN", "BigGAN", "CIPS",
-                              "Gansformer", "GALIP", "Hourglass", "StyleSwin", "ProjectedGAN"]):
-        return "GAN"
-    if any(k in g for k in ["glide", "guideddiffusion", "vqdiffusion", "deepfloyd", "dit", "taming"]):
-        return "PixelDiff"
-    return "LatentDiff"
 
 
 def load_pool(backbone):

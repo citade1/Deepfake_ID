@@ -151,9 +151,11 @@ def shrink_cov(X, alpha=0.3):
 
 
 def disc_geometry(Xe, Xt, eval_pool, train_pool, held, seen):
-    """Q1: generative axis d_F=mu_fake-mu_real vs discriminative normal w=Sigma^-1 d_seen
-    (LDA). cos(d_held, d_seen) is generative alignment; cos(d_held, w) is what the
-    boundary actually reads. A gap = the fake-ward move sits off the discriminative axis."""
+    """Q1: for a held-out family, compare two alignments. cos(d_held, d_seen) = how well
+    its raw fakeness direction lines up with the seen families' raw direction.
+    cos(d_held, w) = how well it lines up with the CLEANED direction the detector actually
+    uses (w = Sigma^-1 d_seen). A gap means the family moved fake-ward but off the axis the
+    detector reads. (d and w are explained in utils/geometry.py.)"""
     ytr, ftr = masks(train_pool)
     rtr = Xt[torch.tensor([ytr[i] == 0 for i in range(len(ytr))])]
     ftr_s = Xt[torch.tensor([ftr[i] in seen and ytr[i] == 1 for i in range(len(ytr))])]
@@ -169,8 +171,9 @@ def disc_geometry(Xe, Xt, eval_pool, train_pool, held, seen):
 
 
 def maha_auc(Xe, Xt, eval_pool, train_pool, held):
-    """Q2: detect using distance-to-REAL only (Mahalanobis, Sigma_real^-1) -- the
-    universal-detector philosophy, no seen-fake boundary. Higher = further from real."""
+    """Q2: score each image by how far it sits from the REAL images (Mahalanobis distance,
+    which accounts for how real images spread). No fake examples are used to draw a
+    boundary -- the idea is 'anything unlike real is fake'. Higher = further from real."""
     ytr = masks(train_pool)[0]
     rtr = Xt[torch.tensor([ytr[i] == 0 for i in range(len(ytr))])]
     mur = rtr.mean(0)

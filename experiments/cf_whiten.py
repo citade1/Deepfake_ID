@@ -1,6 +1,7 @@
-"""Whitening ablation: does a single whitened axis w = Sigma^-1 d detect held-out
-generators as well as (a) the raw axis d = mu_fake - mu_real and (b) a full-dimensional
-MLP probe? Removing within-class (content) variance = the useful 'nuisance removal'."""
+"""Does a single 'cleaned fakeness direction' (w, defined in utils.geometry) detect
+held-out generators as well as (a) the raw direction between the real and fake averages
+and (b) a full neural-net probe? Cleaning = dividing out content/style spread so the
+fakeness signal stands out."""
 import argparse
 import random
 import statistics as st
