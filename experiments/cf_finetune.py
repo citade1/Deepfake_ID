@@ -21,6 +21,7 @@ from transformers import CLIPImageProcessor, CLIPVisionModel
 
 from experiments.prepare_cf import REPO, family, select_shards
 from utils.figs import plt, save_fig, save_json
+from utils.geometry import shrink_cov, unit
 from utils.heads import auc as head_auc
 from utils.heads import fit_head, prob_fake
 
@@ -47,7 +48,7 @@ def gather(shards, per_family, real_per_source, cache):
         return pool
     pool, fake_n, real_n = [], collections.Counter(), collections.Counter()
     for subset, fname in shards:
-        tmp = tempfile.mkdtemp(dir="/tmp")
+        tmp = tempfile.mkdtemp()
         try:
             path = hf_hub_download(REPO[subset], fname, repo_type="dataset", local_dir=tmp)
             d = pq.read_table(path, columns=["image_data", "model_name"]).to_pydict()
@@ -107,13 +108,8 @@ def masks(pool):
     return y, fam
 
 
-def unit(v):
-    return v / v.norm()
-
-
 def real_anchored(X, pool, held, seen):
-    """Canonical real->fake direction view: held family's cos to the seen common
-    axis and its 1-D detection AUC (comparable to our frozen 0.60 baseline)."""
+    """Held family's cos to the seen common axis + its 1-D detection AUC."""
     y, fam = masks(pool)
     mu = X[y == 0].mean(0)
     udir = {}
@@ -142,20 +138,8 @@ def fake_membership(X, pool, held, seen):
     return tf, tr, tf - tr
 
 
-def shrink_cov(X, alpha=0.3):
-    """Ledoit-Wolf-style shrunk covariance so 768x768 stays invertible."""
-    Xc = X - X.mean(0)
-    S = (Xc.T @ Xc) / (len(X) - 1)
-    d = S.shape[0]
-    return (1 - alpha) * S + alpha * (torch.trace(S) / d) * torch.eye(d)
-
-
 def disc_geometry(Xe, Xt, eval_pool, train_pool, held, seen):
-    """Q1: for a held-out family, compare two alignments. cos(d_held, d_seen) = how well
-    its raw fakeness direction lines up with the seen families' raw direction.
-    cos(d_held, w) = how well it lines up with the CLEANED direction the detector actually
-    uses (w = Sigma^-1 d_seen). A gap means the family moved fake-ward but off the axis the
-    detector reads. (d and w are explained in utils/geometry.py.)"""
+    """Q1: alignment of a held-out family's shift with the seen raw axis d vs cleaned axis w."""
     ytr, ftr = masks(train_pool)
     rtr = Xt[torch.tensor([ytr[i] == 0 for i in range(len(ytr))])]
     ftr_s = Xt[torch.tensor([ftr[i] in seen and ytr[i] == 1 for i in range(len(ytr))])]
@@ -171,9 +155,7 @@ def disc_geometry(Xe, Xt, eval_pool, train_pool, held, seen):
 
 
 def maha_auc(Xe, Xt, eval_pool, train_pool, held):
-    """Q2: score each image by how far it sits from the REAL images (Mahalanobis distance,
-    which accounts for how real images spread). No fake examples are used to draw a
-    boundary -- the idea is 'anything unlike real is fake'. Higher = further from real."""
+    """Q2: detect by Mahalanobis distance to real only (no fake boundary); higher = more fake."""
     ytr = masks(train_pool)[0]
     rtr = Xt[torch.tensor([ytr[i] == 0 for i in range(len(ytr))])]
     mur = rtr.mean(0)
@@ -265,10 +247,7 @@ def metrics(Xe, Xt, eval_pool, train_pool, held, seen):
 
 
 def run_holdout(model, init_state, proc, eval_pool, train_all, Xe0, Xt0, held, epochs, bs, lr, seed=0):
-    """Frozen vs LN-tuned readouts for one held-out family. Xe0/Xt0 are the shared
-    frozen features (aligned to train_all); the model is reset to `init_state`
-    (pretrained) before tuning. metrics use train_all -- fit_seen_head drops the held
-    family via `seen`, so features stay aligned. Fine-tuning uses held-removed data."""
+    """Frozen vs LN-tuned readouts for one held-out family; model reset to init_state first."""
     seen = [g for g in GEN if g != held]
     train_pool = [x for x in train_all if x[1] != held]
     gf, pf, df = metrics(Xe0, Xt0, eval_pool, train_all, held, seen)

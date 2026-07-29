@@ -84,10 +84,8 @@ def select_by_generator(gen_targets):
 
 @torch.no_grad()
 def extract(models, subset, fname, batch=16):
-    """Download a shard once; extract normalized feat7/feat12 for each backbone in
-    `models` (name -> (model, proc, pool)). Same decoded images feed all backbones,
-    so model_name stays aligned. Returns {name: (f7, f12)}, model_names."""
-    tmp = tempfile.mkdtemp(dir="/tmp")  # local copy, fully removed after (no HF blob leak)
+    """Download a shard once; extract feat7/feat12 for every backbone. -> {name:(f7,f12)}, names."""
+    tmp = tempfile.mkdtemp()  # local copy, removed after (avoids HF blob cache leak)
     path = hf_hub_download(REPO[subset], fname, repo_type="dataset", local_dir=tmp)
     d = pq.read_table(path, columns=["image_data", "model_name"]).to_pydict()
     acc = {n: {7: [], 12: []} for n in models}

@@ -1,14 +1,9 @@
-"""Two ways to measure "intrinsic dimension" -- roughly, how many independent directions
-the data actually uses (a curved sheet in 3-D has intrinsic dimension 2). TwoNN gives one
-number for a whole set; LID is a per-image local estimate. See README."""
-
+"""Intrinsic-dimension estimators: TwoNN (one number per set) and per-image LID."""
 import torch
 
 
-def twonn_global_id(features: torch.Tensor, discard_frac: float = 0.1) -> float:
-    """One intrinsic-dimension number for the whole set (TwoNN, Facco et al. 2017). It reads
-    the dimension from the ratio of each point's 2nd- to 1st-nearest-neighbour distance;
-    the top `discard_frac` (noisiest points) is dropped."""
+def twonn_global_id(features, discard_frac=0.1):
+    """Set-level intrinsic dimension (TwoNN, Facco 2017), from 2nd/1st NN(Nearest Neighbor) distance ratios."""
     N = features.size(0)
     if N < 10:
         return float("nan")
@@ -23,27 +18,14 @@ def twonn_global_id(features: torch.Tensor, discard_frac: float = 0.1) -> float:
     return float((x * y).sum() / (x * x).sum())              # slope through origin
 
 
-def compute_lid_features(
-    query: torch.Tensor,
-    reference: torch.Tensor,
-    k: int = 20,
-) -> torch.Tensor:
-    """Per-image local-complexity features: for each query image, how fast the distances
-    to its k nearest reference images grow (a slow, even growth = simple local structure).
-    Returns (Q, k), zero-padded if the reference set has fewer than k points."""
+def compute_lid_features(query, reference, k=20):
+    """Per-image local complexity: log-ratio of k-NN distances to the reference set, (Q, k)."""
     R, Q, eps = reference.size(0), query.size(0), 1e-9
-    dist = torch.cdist(query, reference, p=2)
-
     k_eff = min(k, R)
     if k_eff < 1:
         return torch.zeros(Q, k, device=query.device, dtype=query.dtype)
-
-    sorted_d, _ = torch.sort(dist, dim=1)
-    d_neighbors = sorted_d[:, :k_eff]
-    d_k = sorted_d[:, k_eff - 1].unsqueeze(1)
-    log_ratios = torch.log((d_k + eps) / (d_neighbors + eps))
-
+    sorted_d, _ = torch.sort(torch.cdist(query, reference, p=2), dim=1)
+    log_ratios = torch.log((sorted_d[:, k_eff - 1:k_eff] + eps) / (sorted_d[:, :k_eff] + eps))
     if k_eff < k:
-        pad = torch.zeros(Q, k - k_eff, device=query.device, dtype=query.dtype)
-        log_ratios = torch.cat([log_ratios, pad], dim=1)
+        log_ratios = torch.cat([log_ratios, torch.zeros(Q, k - k_eff, device=query.device)], dim=1)
     return log_ratios

@@ -1,7 +1,4 @@
-"""Transfer-failure predictor: does the label-free geometric alignment
-cos(d_B, w_A) -- how the held-out family B's shift lines up with the discriminative
-axis a detector trained on A actually reads -- predict the real A->B transfer AUC?
-A positive correlation turns the geometry into a label-free 'will it generalize?' test."""
+"""Does geometric alignment cos(d_B, w_A) predict the actual A->B transfer AUC?"""
 import argparse
 import random
 

@@ -1,8 +1,5 @@
-"""Rebuild the shard-selection maps prepare_cf reads (checkpoints/cf_*.json).
-
-Scans CF parquet metadata -- model_name counts per shard, file sizes, and the
-dominant real source per real shard -- reading ONLY the model_name column
-remotely, so it never downloads the images. Run once to bootstrap prepare_cf."""
+"""Bootstrap the shard-selection maps (checkpoints/cf_*.json) by scanning only the
+model_name column of each CF parquet remotely -- no image download."""
 import argparse
 import collections
 import json

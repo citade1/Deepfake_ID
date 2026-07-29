@@ -1,7 +1,4 @@
-"""Does a single 'cleaned fakeness direction' (w, defined in utils.geometry) detect
-held-out generators as well as (a) the raw direction between the real and fake averages
-and (b) a full neural-net probe? Cleaning = dividing out content/style spread so the
-fakeness signal stands out."""
+"""Held-out detection with one cleaned axis w vs the raw axis d vs a full MLP probe."""
 import argparse
 import random
 import statistics as st

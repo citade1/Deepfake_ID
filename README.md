@@ -1,68 +1,86 @@
 # The geometry of cross-generator AI-image detection
 
-**Preliminary exploration, not a new detector.** When does a frozen vision backbone's
-features let you tell real from AI-generated images *without ever training on fakes*, and
-when does that break on a generator you have never seen? The aim is to *characterize* why
-generator-agnostic detection succeeds or fails, geometrically.
+When can a frozen vision backbone's features tell real from AI-generated images *without the
+backbone ever being trained on fakes* — and when does that break on a generator it has never
+seen? This is a study of **why** generator-agnostic detection succeeds or fails, measured
+geometrically, rather than a proposal for a new detector.
 
-Backbones are **frozen**; only a small head or a closed-form direction is fit. Data:
-[Community Forensics](https://huggingface.co/datasets/OwensLab/CommunityForensics-Small)
-(labels and families derived from `model_name`, its reliable field; `architecture`/`label`
-are inconsistent). Families span the generations **GAN → PixelDiff → LatentDiff → Flow →
-Commercial** (~300 generators). Every number is a mean over 5 seeds unless noted.
+**TL;DR** — On this dataset and these five backbones, a **single closed-form direction**
+(`Σ⁻¹(μ_fake − μ_real)`, no training) detects held-out generators about as well as a trained
+MLP probe on the same features. Where transfer does fail, it tracks *direction mismatch*
+rather than model capacity: GAN-family fakes sit on a nearly separate axis from modern ones.
+Whether this reflects something general about frozen features or something specific to
+Community Forensics is not settled by these experiments.
 
 ## Setup
 
-The study repeats the same analysis across **five ViT-Base backbones with different
-pretraining objectives** (`utils/backbones.py`): CLIP and SigLIP2 (vision-language),
-DINOv2 and MAE (self-supervised), ViT (supervised). One shard download feeds all five, so
-the geometry claims are not an artifact of any single model. Evaluation is always on
-generators held out of training (leave-one-generation-out).
+- **Data**: [Community Forensics](https://huggingface.co/datasets/OwensLab/CommunityForensics-Small),
+  ~300 generators grouped into five families in rough chronological order —
+  **GAN → PixelDiff → LatentDiff → Flow → Commercial**. Labels and families come from
+  `model_name`; the dataset's own `architecture`/`label` columns are inconsistent.
+- **Backbones** (all ViT-Base, frozen): CLIP and SigLIP2 *(image–text contrastive)*,
+  DINOv2 and MAE *(self-supervised)*, ViT *(ImageNet-supervised)*. Running every analysis on
+  all five is what separates "a property of CLIP" from "a property of strong ViT features".
+- **Protocol**: **leave-one-generation-out** — a detector is fit on four families and scored
+  on the fifth, so every number below is on generators never seen during fitting.
+  Mean over 5 seeds.
 
-## Key findings
+### The two directions being compared
 
-1. **The generalizable signal is one "cleaned" direction.** Take the line from the average
-   real image to the average fake image, then divide out how much the features naturally
-   wobble with content and style (whitening; `w = Σ⁻¹d`, see `utils/geometry.py`). This
-   single closed-form direction detects *held-out* generators about as well as a full
-   neural-net probe — and beats it on the hardest family (GAN). Extra capacity buys nothing
-   out of distribution.
+Let `μ_real`, `μ_fake` be class means in feature space and `Σ` the within-class covariance.
 
-   | backbone | raw direction | **cleaned direction (1-D)** | full MLP probe |
-   | --- | --- | --- | --- |
-   | CLIP | 0.918 | **0.983** | 0.983 |
-   | SigLIP2 | 0.915 | **0.973** | 0.977 |
-   | DINOv2 | 0.883 | **0.953** | 0.960 |
-   | MAE | 0.874 | **0.946** | 0.941 |
-   | ViT (supervised) | 0.869 | **0.931** | 0.933 |
-
-   *(held-out AUC, mean over 5 families; `experiments/cf_whiten.py`)*
-
-2. **It is not specific to vision-language pretraining.** The same effect appears in all
-   five backbones — language (CLIP/SigLIP2), self-supervised (DINOv2/MAE), and supervised
-   (ViT). Language models get a small absolute edge, not the phenomenon.
-
-3. **Local intrinsic dimension (LID) is not the signal.** A raw probe reaches 0.99; LID
-   alone 0.90; combining them adds nothing. The signal is *where* the two groups sit, not
-   how locally complex they are (`experiments/cf_generational.py`).
-
-4. **Crossing generator paradigms is the hard part, and GAN is the outlier.** Transfer
-   between families is uneven; the weakest case is detecting GAN with a detector trained on
-   modern generators, because GAN sits on a nearly separate direction. Fine-tuning the
-   backbone aligns representations but *degrades* this cross-family transfer — a geometric
-   reason universal detectors keep the backbone frozen (`cf_matrix.py`, `cf_finetune.py`).
-
-**Honest takeaway.** Most of this confirms known or definitional facts (frozen-CLIP
-generalization; fine-tuning hurts transfer; the "cleaned direction" is Fisher's linear
-discriminant). The least-trivial single fact is that cross-generator detection is a
-**1-D whitened phenomenon** across five pretraining objectives. This is a characterization,
-not a discovery — see *Status* below.
+| | definition | intuition |
+| --- | --- | --- |
+| **raw direction** `d` | `μ_fake − μ_real` | the straight line between the two class means |
+| **cleaned direction** `w` | `Σ⁻¹d` | the same line after dividing out the variance that content and style contribute — i.e. Fisher's linear discriminant, computed in closed form, no gradient steps |
 
 ## Results
 
-**Cross-architecture transfer** (`cf_matrix.py`, CLIP B/16) — rows train, cols test, AUC:
+Detection AUC on **held-out generators** (mean over the five families):
 
-| train \ test | GAN | PixDiff | LatDiff | Flow | Comm |
+| backbone | pretraining | raw `d` | **cleaned `w`** | trained MLP | hardest family (GAN): `w` vs MLP |
+| --- | --- | --- | --- | --- | --- |
+| CLIP | image–text | 0.918 | **0.983** | 0.983 | **0.977** vs 0.966 |
+| SigLIP2 | image–text | 0.915 | **0.973** | 0.977 | 0.973 vs 0.972 |
+| DINOv2 | self-sup. | 0.883 | **0.953** | 0.960 | 0.953 vs 0.954 |
+| MAE | self-sup. | 0.874 | **0.946** | 0.941 | **0.914** vs 0.899 |
+| ViT | supervised | 0.869 | **0.931** | 0.933 | **0.917** vs 0.910 |
+
+*(`experiments/cf_whiten.py`; MLP = 2-layer head on the same 768-d features)*
+
+Reading the table:
+
+1. **Whitening helps; extra capacity does not.** `d → w` gains +0.06–0.07 AUC on every
+   backbone, while `w →` MLP gains ~nothing: the closed-form direction stays within ±0.007
+   of the trained probe on average and comes out ahead on GAN — the hardest held-out
+   family — for 3 of 5 backbones. So on this benchmark the useful structure is captured by
+   a whitened mean difference, and a 2-layer head adds no out-of-distribution robustness on
+   top of it. (Whether a larger probe or more training data would change this is untested.)
+2. **Not specific to vision-language pretraining.** The same pattern appears in
+   self-supervised and supervised backbones, so it is not an artifact of CLIP's image–text
+   objective. Image–text models do hold a few points of absolute accuracy over the others.
+
+Two supporting results:
+
+- **Local intrinsic dimension is not the signal** (`cf_generational.py`). The project started
+  from the hypothesis that fakes occupy a locally simpler manifold. Measured per-image LID
+  reaches 0.90 AUC against 0.99 for the raw features, and adding it to the features changes
+  nothing. What separates the classes is *where the two clouds sit*, not how locally complex
+  they are. (Set-level intrinsic dimension does differ — real ≈ 18.5 vs 9.7–18.0 across the
+  fake families by TwoNN — but that is a property of the set, not a per-image cue.)
+- **Failures are a direction problem** (`cf_matrix.py`, `cf_finetune.py`). Transfer within the
+  modern cluster (LatentDiff/Flow/Commercial) is ~0.98, but a detector fit on modern
+  generators drops to 0.82–0.92 on GAN, whose real→fake shift points along a nearly separate
+  axis. Fine-tuning the backbone (LayerNorm-only) *increases* representation alignment yet
+  *degrades* held-out transfer — a geometric account of why universal detectors keep the
+  backbone frozen.
+
+<details>
+<summary>Cross-family transfer matrix and per-detector failure overlap</summary>
+
+Rows = family fit on, columns = family scored on (CLIP B/16, AUC):
+
+| fit \ scored | GAN | PixDiff | LatDiff | Flow | Comm |
 | --- | --- | --- | --- | --- | --- |
 | **GAN** | 1.00 | 0.97 | 0.94 | 0.93 | 0.88 |
 | **PixDiff** | 0.96 | 1.00 | 0.94 | 0.94 | 0.88 |
@@ -70,65 +88,46 @@ not a discovery — see *Status* below.
 | **Flow** | 0.92 | 0.93 | 0.98 | 0.99 | 0.98 |
 | **Comm** | **0.82** | 0.83 | 0.98 | 0.95 | 0.99 |
 
-Modern→GAN is the soft spot (0.82–0.92); within the modern cluster transfer is ~0.98.
+**Which images each detector misses** (`cf_gallery.py`, in-distribution, single sample).
+The cleaned direction and the MLP miss largely the *same* fakes (Jaccard 0.66) — expected,
+since both read the same seen-fake axis. Mahalanobis distance-to-real misses *different* ones
+(Jaccard 0.11–0.15): it is weak where they are strong (PixelDiff) and strong where they are
+weak (Commercial), so the two families of method are complementary. Only 5 of 47 errors are
+missed by all three, and those are photorealistic scenes with no visible artifact.
+*Error counts are small — a diagnostic, not a measured claim.*
 
-**Manifold intrinsic dimension** (`cf_twonn.py`, TwoNN, layer 12): real ≈ 19.3 vs fakes
-16.7–17.7 — a modest, set-level gap (not a per-image detector, consistent with finding 3).
+</details>
 
-## Pipeline & reproduction
+## Running it
 
-Extract features once, then re-draw and analyze many times (`--seed` = a fresh sample).
-
-```
-experiments/build_maps.py             (bootstrap) scan shard metadata -> checkpoints/cf_*.json
-experiments/prepare_cf.py             download shards once -> per-backbone feature caches
-experiments/compose_cf.py             draw a labelled, generator-balanced dataset (--backbone --seed)
-experiments/cf_whiten.py              cleaned direction vs raw vs full MLP, held-out  (headline)
-experiments/cf_matrix.py              train x test transfer matrix
-experiments/cf_directions.py          per-family real->fake direction geometry
-experiments/cf_subspace.py            how many fakeness directions suffice (LOGO)
-experiments/cf_generational.py        in-distribution + LOGO (raw / LID / raw+LID)
-experiments/cf_twonn.py               manifold intrinsic dimension (TwoNN) per family
-experiments/cf_ensemble.py            ensemble of per-family probes vs one pooled probe
-experiments/cf_transfer_predictor.py  can geometry predict transfer? (near-definitional; see Status)
-experiments/cf_finetune.py            LayerNorm fine-tune (LOGO): representation vs decision
-utils/backbones.py                    the five ViT-Base backbones + feature extraction
-utils/geometry.py                     the raw (d) and cleaned (w) fakeness directions
-utils/cf_data.py                      load a dataset; map model_name -> family
-utils/heads.py                        MLP probe: fit + AUC
-utils/lid_estimator.py                LID + TwoNN intrinsic-dimension estimators
-utils/figs.py                         save results as JSON + 300-dpi PNG
-```
+Features are extracted once per backbone, then re-drawn and analyzed many times
+(`--seed` = a fresh draw). Every experiment writes `figures/<name>_<backbone>.json`
+alongside a 300-dpi PNG.
 
 ```bash
-python experiments/build_maps.py                 # one-time: rebuild checkpoints/cf_*.json (metadata only)
-python experiments/prepare_cf.py                 # download shards once -> per-backbone feature caches
-for bb in clip siglip2 dinov2 mae vit; do
-  python experiments/compose_cf.py   --backbone $bb --seed 0
-  python experiments/cf_whiten.py    --backbone $bb --seeds 5
-  python experiments/cf_matrix.py    --backbone $bb --seeds 5
-  python experiments/cf_directions.py --backbone $bb --seeds 5
-  python experiments/cf_subspace.py  --backbone $bb --seeds 5
-  python experiments/cf_twonn.py     --backbone $bb --seeds 5
-done
-python experiments/cf_finetune.py --holdout all --seeds 3   # CLIP B/16 only; image pools disk-cached
-python -m pytest tests/                            # label-mapping sanity checks
+python experiments/build_maps.py                          # one-time: shard metadata -> checkpoints/cf_*.json
+python experiments/prepare_cf.py                          # download shards once -> per-backbone feature caches
+python experiments/compose_cf.py --backbone clip --seed 0  # draw a generator-balanced dataset
+python experiments/cf_whiten.py  --backbone clip --seeds 5 # headline result
+python -m pytest tests/                                   # label-mapping sanity checks
 ```
 
-Each experiment writes `figures/<name>_<backbone>.json` and a paper-ready
-`figures/<name>_<backbone>.png`. Raw run logs go to `log/` (untracked).
+Other analyses take the same `--backbone` / `--seeds` flags: `cf_matrix` (transfer matrix),
+`cf_directions` and `cf_subspace` (direction geometry), `cf_generational` (LID),
+`cf_twonn` (intrinsic dimension), `cf_ensemble`, `cf_finetune` (LayerNorm fine-tune),
+`cf_gallery` (failure cases). Shared code lives in `utils/`: `geometry.py` defines `d` and
+`w`, `backbones.py` the five feature extractors, `heads.py` the MLP probe.
 
-## Status — preliminary exploration
+## Scope
 
-This is a **characterization/analysis**, honestly not a discovery: the pieces mostly
-confirm known or definitional results, and the "geometry predicts cross-generator transfer"
-observation (`cf_transfer_predictor.py`) is close to a restatement of what a linear detector
-*is* — kept in the repo as a consistency check, not a result.
+A characterization study, not a proposed detector. One observation that first looked like a
+result — that geometric alignment predicts cross-generator transfer
+(`cf_transfer_predictor.py`) — is close to a restatement of what a linear detector *is*, so
+it is kept as a consistency check rather than a finding.
 
-The durable *next* question is a genuinely new one — **localization + attribution** ("which
-region is fake, and which generator made it"). Pixel-mask localization datasets are now
-plentiful (COCO-Inpaint, OpenSDI, GIM, DiffSeg30k, …) and DINOv2-based localization already
-exists (DinoLizer); the open niche is **localized attribution** (per-region generator
-identity), for which no dataset yet exists — it would have to be built from multi-generator
-inpainting. That, not a better passive binary detector, is where representation geometry
-could still say something new.
+Follow-ups were scoped against the 2025–26 literature before committing to any: localization,
+agentic detection, explanation-faithfulness verification, and whole-image generator
+attribution are all actively worked on, the last including its geometric formulation
+(Riemannian-Geometric Fingerprints generalizes the mean-difference idea used here). The
+remaining gap is **localized attribution** — which region *and* which generator — which needs
+a dataset that does not exist yet.
