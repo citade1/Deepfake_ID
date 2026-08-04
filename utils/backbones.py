@@ -1,5 +1,4 @@
-"""The five study backbones (all ViT-Base, 768-d) and a unified feature extractor,
-so the geometry analyses run identically across diverse training objectives."""
+"""The five study backbones and one extractor, so every analysis runs on them alike."""
 import torch
 import torch.nn.functional as F
 from transformers import (AutoImageProcessor, AutoModel, CLIPImageProcessor,
@@ -43,11 +42,19 @@ def _vision(model, name):
 
 @torch.no_grad()
 def features(model, proc, pool, name, images, device, layers=(7, 12)):
-    """Normalized ViT features at the given layers for a list of PIL images."""
+    """Normalized ViT features for a list of PIL images."""
     px = proc(images=images, return_tensors="pt")["pixel_values"].to(device)
-    hs = _vision(model, name)(pixel_values=px, output_hidden_states=True).hidden_states
+    kw = {}
+    if name == "mae":
+        # MAE shuffles patches even at mask_ratio=0; fixed noise keeps features bit-identical
+        n_patches = (model.config.image_size // model.config.patch_size) ** 2
+        kw["noise"] = torch.arange(n_patches, device=device,
+                                   dtype=px.dtype).expand(len(px), -1)
+    hs = _vision(model, name)(pixel_values=px, output_hidden_states=True, **kw).hidden_states
+    depth = len(hs) - 1
     out = {}
     for L in layers:
-        h = hs[L][:, 0] if pool == "cls" else hs[L].mean(1)
+        idx = L if depth == 12 else max(1, round(L * depth / 12))  # same relative depth
+        h = hs[idx][:, 0] if pool == "cls" else hs[idx].mean(1)
         out[L] = F.normalize(h, dim=1).cpu()
     return out

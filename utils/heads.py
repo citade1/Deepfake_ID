@@ -8,8 +8,7 @@ from sklearn.metrics import roc_auc_score
 
 
 def fit_head(Xtr, ytr, Xva, yva, seed=0, epochs=20, patience=4):
-    # head init is fixed by `seed` (default 0) across experiment seeds on purpose:
-    # run-to-run variance then comes from the data split, not the weight init.
+    # init fixed by `seed` on purpose: run-to-run variance comes from the split, not the weights
     torch.manual_seed(seed)
     mlp = nn.Sequential(nn.Linear(Xtr.shape[1], 128), nn.ReLU(),
                         nn.Dropout(0.3), nn.Linear(128, 2))
@@ -21,7 +20,8 @@ def fit_head(Xtr, ytr, Xva, yva, seed=0, epochs=20, patience=4):
             opt.zero_grad()
             F.cross_entropy(mlp(Xtr[idx]), ytr[idx]).backward()
             opt.step()
-        va = auc(mlp, Xva, yva)                              # evaluate once per epoch
+        mlp.eval()                                           # no dropout while validating
+        va = auc(mlp, Xva, yva)
         if va > best:
             best, best_state, stale = va, copy.deepcopy(mlp.state_dict()), 0
         else:

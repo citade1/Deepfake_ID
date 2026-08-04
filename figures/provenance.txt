@@ -1,0 +1,4 @@
+utc 2026-08-03T07:25:39Z
+commit 314bb9f
+python 3.10.19 torch 2.7.1 transformers 5.0.0.dev0 pyarrow 22.0.0 hub 1.1.4
+device mps

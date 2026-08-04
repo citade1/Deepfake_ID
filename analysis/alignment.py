@@ -1,0 +1,98 @@
+"""Does geometric alignment cos(d_B, w_A) predict the actual A->B transfer AUC?"""
+import argparse
+import random
+
+import numpy as np
+import torch
+
+from utils.cf_data import balanced, fake_index, halves, load, real_split, train_val
+from utils.figs import plt, save_fig, save_json
+from utils.geometry import axes
+from utils.heads import auc, fit_head
+
+
+def per_seed(seed, backbone):
+    rng = random.Random(seed)
+    d = load(seed, backbone)
+    y, fam, X = d["label"], d["family"], d["feat12"]
+    real = (y == 0).nonzero(as_tuple=True)[0].tolist()
+    rng.shuffle(real)
+    real_tr, real_te = real_split(real)
+    Xr_tr = X[torch.tensor(real_tr)]
+    sp = {g: halves(v) for g, v in fake_index(y, fam, rng).items()}
+    fams = [g for g, v in sp.items() if v]
+    ftr = {g: sp[g][0] for g in fams}
+    fte = {g: sp[g][1] for g in fams}
+
+    heads, wA, dA = {}, {}, {}
+    for A in fams:
+        tr, va = train_val(balanced(real_tr, ftr[A], rng), rng)
+        heads[A] = fit_head(X[torch.tensor(tr)], y[torch.tensor(tr)],
+                            X[torch.tensor(va)], y[torch.tensor(va)], seed=0)
+        wA[A], dA[A] = axes(Xr_tr, X[torch.tensor(ftr[A])])
+
+    rows = []
+    for A in fams:
+        for B in fams:
+            dB = dA[B]        # B's shift from B's TRAIN half: the predictor never sees the test half
+            gw = torch.dot(wA[A], dB).item()                   # discriminative-axis alignment
+            gd = torch.dot(dA[A], dB).item()                   # generative-axis alignment (baseline)
+            te = torch.tensor(real_te + fte[B])
+            a = auc(heads[A], X[te], y[te])                    # actual A->B transfer AUC
+            rows.append((A, B, gw, gd, a))
+    return rows
+
+
+def corr(xs, ys):
+    x, y = np.array(xs), np.array(ys)
+    pear = float(np.corrcoef(x, y)[0, 1])
+    rx, ry = x.argsort().argsort(), y.argsort().argsort()     # ranks for Spearman
+    spear = float(np.corrcoef(rx, ry)[0, 1])
+    return pear, spear
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Geometric predictor of cross-generator transfer AUC")
+    ap.add_argument("--seeds", type=int, default=5)
+    ap.add_argument("--backbone", default="clip")
+    args = ap.parse_args()
+    rows = [r for s in range(args.seeds) for r in per_seed(s, args.backbone)]
+    off = [(gw, gd, a) for A, B, gw, gd, a in rows if A != B]
+
+    def report(sel):
+        gw, gd, a = [r[0] for r in sel], [r[1] for r in sel], [r[2] for r in sel]
+        return corr(gw, a), corr(gd, a)
+    w_all, d_all = report([(gw, gd, a) for _, _, gw, gd, a in rows])
+    w_off, d_off = report(off)
+
+    print(f"transfer predictor ({args.backbone}, {args.seeds} seeds, {len(rows)} pairs)")
+    print(f"  discriminative cos(d_B, w_A):  all P{w_all[0]:+.3f} S{w_all[1]:+.3f} | "
+          f"off-diag P{w_off[0]:+.3f} S{w_off[1]:+.3f}")
+    print(f"  generative     cos(d_B, d_A):  all P{d_all[0]:+.3f} S{d_all[1]:+.3f} | "
+          f"off-diag P{d_off[0]:+.3f} S{d_off[1]:+.3f}   (baseline)")
+
+    save_json({"backbone": args.backbone, "seeds": args.seeds,
+               "discriminative": {"pearson_all": w_all[0], "spearman_all": w_all[1],
+                                  "pearson_offdiag": w_off[0], "spearman_offdiag": w_off[1]},
+               "generative_baseline": {"pearson_all": d_all[0], "spearman_all": d_all[1],
+                                       "pearson_offdiag": d_off[0], "spearman_offdiag": d_off[1]},
+               "pairs": [{"train": A, "test": B, "cos_dB_wA": gw, "cos_dB_dA": gd, "auc": a}
+                         for A, B, gw, gd, a in rows]},
+              f"cf_transfer_predictor_{args.backbone}")
+
+    fig, ax = plt.subplots(figsize=(5.6, 4.4))
+    diag = [(gw, a) for A, B, gw, gd, a in rows if A == B]
+    ax.scatter([gw for gw, _, _ in off], [a for _, _, a in off], s=18, color="#5b8ff9",
+               label="A→B (transfer)")
+    ax.scatter([gw for gw, _ in diag], [a for _, a in diag], s=22, color="#d1495b",
+               label="A→A (in-family)")
+    ax.set_xlabel("geometric alignment  cos(d_B, w_A)")
+    ax.set_ylabel("actual transfer AUC")
+    ax.set_title(f"Geometry predicts transfer ({args.backbone})\n"
+                 f"off-diag Spearman: w_A {w_off[1]:+.2f} vs d_A {d_off[1]:+.2f}", fontsize=10)
+    ax.legend(fontsize=8, loc="lower right")
+    save_fig(fig, f"cf_transfer_predictor_{args.backbone}")
+
+
+if __name__ == "__main__":
+    main()

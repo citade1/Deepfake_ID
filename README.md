@@ -1,99 +1,101 @@
 # The geometry of cross-generator AI-image detection
 
-When can a frozen vision backbone's features tell real from AI-generated images *without the
-backbone ever being trained on fakes* — and when does that break on a generator it has never
-seen? A characterization of **why** generator-agnostic detection succeeds or fails, not a
-proposed detector.
+Can a frozen vision backbone tell real from AI-generated images *without ever being trained on
+fakes*, and when does that break on a generator family it has never seen? A characterization of
+why generator-agnostic detection succeeds or fails — not a proposed detector.
 
-**TL;DR** — On this dataset and these five backbones, a single closed-form direction
-(`Σ⁻¹(μ_fake − μ_real)`, no training) detects held-out generators about as well as a trained
-MLP probe on the same features. Where transfer fails it tracks *direction mismatch* rather
-than model capacity: GAN-family fakes sit on a nearly separate axis from modern ones.
+**TL;DR** — A single closed-form direction (`Σ⁻¹(μ_fake − μ_real)`, no training) recovers most
+of what a trained MLP gets on held-out generator families. The exception is GAN, which sits off
+the subspace the other families span.
+
+![Two ladders: what the method buys and what the dimension buys](figures/signature_clip.png)
 
 ## Setup
 
-- **Data**: [Community Forensics](https://huggingface.co/datasets/OwensLab/CommunityForensics-Small)
-  — ~300 generators in five families, roughly chronological:
-  **GAN → PixelDiff → LatentDiff → Flow → Commercial**. Labels come from `model_name`; the
-  dataset's own `architecture`/`label` columns are inconsistent.
-- **Backbones** (ViT-Base, frozen): CLIP, SigLIP2 *(image–text)*, DINOv2, MAE
-  *(self-supervised)*, ViT *(supervised)* — five pretraining objectives, so a result that
-  holds across all of them is not a property of CLIP alone.
-- **Protocol**: leave-one-generation-out — fit on four families, score on the fifth. Every
-  number is on generators unseen during fitting, averaged over 5 seeds.
+**Data** — [Community Forensics](https://huggingface.co/datasets/OwensLab/CommunityForensics-Small),
+all 599 shards scanned, six families: **GAN, PixDiff, LatDiff, Flow, Commercial, Other**.
+family from its `architecture`; Flow is separated from Commercial 
 
-With `μ_real`, `μ_fake` the class means and `Σ` the within-class covariance, the comparison is
-between the **raw direction** `d = μ_fake − μ_real` and the **whitened direction** `w = Σ⁻¹d`
-(Fisher's linear discriminant — the same line with content/style variance divided out).
+**Backbones** — CLIP, SigLIP2, DINOv2, MAE, ViT (all ViT-Base, frozen): five pretraining
+objectives, so a result holding across all of them is not a property of CLIP alone.
+
+**Protocol** — leave-one-generation-out, 5 seeds, 16,000 images per draw (1,500 per family
+balanced across its generators, 7,000 real). `d = μ_fake − μ_real`; `w = Σ⁻¹d` is the same line
+with content variance divided out (Fisher's LDA).
+
+**One control up front** — CF stores reals as JPEG and most fakes as PNG at a few fixed
+resolutions, so a classifier reading only format, resolution and bytes-per-pixel separates them
+at **AUC 0.968**, never seeing a pixel. Every image is re-encoded to JPEG q96 with chroma
+subsampling off, as [GenImage](https://arxiv.org/abs/2306.08571) does. Subsampling matters: PIL
+applies 4:2:0 at every quality, costing CLIP 4× more feature drift than DINOv2 — which would
+confound the cross-backbone comparison itself.
 
 ## Results
 
-Detection AUC on **held-out generators**, mean over the five families:
+Held-out-family AUC, mean over six families and 5 seeds (`analysis/whiten.py`):
 
-| backbone | pretraining | raw `d` | **whitened `w`** | trained MLP | hardest family (GAN): `w` vs MLP |
+| backbone | pretraining | raw `d` | **whitened `w`** | trained MLP | GAN only: `w` vs MLP |
 | --- | --- | --- | --- | --- | --- |
-| CLIP | image–text | 0.918 | **0.983** | 0.983 | **0.977** vs 0.966 |
-| SigLIP2 | image–text | 0.915 | **0.973** | 0.977 | 0.973 vs 0.972 |
-| DINOv2 | self-sup. | 0.883 | **0.953** | 0.960 | 0.953 vs 0.954 |
-| MAE | self-sup. | 0.874 | **0.946** | 0.941 | **0.914** vs 0.899 |
-| ViT | supervised | 0.869 | **0.931** | 0.933 | **0.917** vs 0.910 |
+| CLIP | image–text | 0.830 | **0.945** | 0.952 | 0.864 vs **0.916** |
+| SigLIP2 | image–text | 0.804 | **0.910** | 0.916 | 0.736 vs **0.787** |
+| DINOv2 | self-sup. | 0.781 | **0.857** | 0.866 | 0.676 vs **0.730** |
+| MAE | self-sup. | 0.739 | **0.874** | 0.864 | 0.654 vs 0.670 |
+| ViT | supervised | 0.762 | **0.835** | 0.831 | 0.612 vs 0.625 |
 
-*(`cf_whiten.py`; MLP = 2-layer head on the same 768-d features)*
-
-- **Whitening helps, capacity does not.** `d → w` gains +0.06–0.07 everywhere; `w →` MLP
-  gains ~nothing (within ±0.007 on average, and `w` wins on GAN for 3 of 5 backbones). On
-  this benchmark the useful structure is a whitened mean difference.
-- **Not a vision-language effect.** The same pattern holds for self-supervised and supervised
-  backbones; image–text pretraining buys a few points of absolute accuracy, not the effect.
-- **Local intrinsic dimension is not the signal** (`cf_generational.py`). The project started
-  from the hypothesis that fakes are locally simpler. Per-image LID reaches 0.90 AUC against
-  0.99 for the raw features, and adding it changes nothing — what separates the classes is
-  *where* the two clouds sit, not their local complexity.
-- **Failures are directional** (`cf_matrix.py`, `cf_finetune.py`). Transfer inside the modern
-  cluster is ~0.98, but a detector fit on modern generators drops to 0.82–0.92 on GAN, whose
-  real→fake shift points along a nearly separate axis. LayerNorm fine-tuning *increases*
-  representation alignment while *degrading* held-out transfer — a geometric reason universal
-  detectors keep the backbone frozen.
+- **Whitening carries the result, capacity adds little.** `d → w` gains +0.07–0.14 everywhere;
+  `w →` MLP moves ±0.01.
+- **Except on GAN**, where the MLP leads by up to +0.05. GAN is also where `analysis/subspace.py`
+  collapses: a probe restricted to the 5-D span of the *other* families' directions scores 0.643
+  on GAN against 0.916 for the full 768-d probe — the same restriction costs LatDiff only 0.03.
+- **Not a vision-language effect** — the ordering holds for self-supervised and supervised
+  backbones too.
+- **LID is not the signal** (`analysis/lid.py`), the hypothesis this project started from.
+  Per-image LID alone reaches 0.848 against 0.975 for raw features; concatenating it gives 0.979.
+- **An ensemble of per-family specialists does not beat one pooled probe** (`analysis/ensemble.py`):
+  0.971 max / 0.960 mean vs 0.975 pooled.
 
 <details>
-<summary>Transfer matrix and per-detector failure overlap</summary>
+<summary>Transfer matrix (CLIP, rows = fit on, columns = scored on)</summary>
 
-Rows = fit on, columns = scored on (CLIP B/16, AUC):
+| fit \ scored | GAN | PixDiff | LatDiff | Flow | Comm | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| **GAN** | 0.98 | 0.85 | 0.76 | 0.74 | 0.64 | 0.77 |
+| **PixDiff** | 0.87 | 0.96 | 0.85 | 0.87 | 0.85 | 0.89 |
+| **LatDiff** | 0.69 | 0.83 | 0.98 | 0.91 | 0.97 | 0.93 |
+| **Flow** | 0.74 | 0.83 | 0.95 | 0.99 | 0.97 | 0.93 |
+| **Comm** | **0.60** | 0.77 | 0.96 | 0.87 | 0.99 | 0.86 |
+| **Other** | 0.79 | 0.85 | 0.93 | 0.94 | 0.94 | 1.00 |
 
-| fit \ scored | GAN | PixDiff | LatDiff | Flow | Comm |
-| --- | --- | --- | --- | --- | --- |
-| **GAN** | 1.00 | 0.97 | 0.94 | 0.93 | 0.88 |
-| **PixDiff** | 0.96 | 1.00 | 0.94 | 0.94 | 0.88 |
-| **LatDiff** | 0.90 | 0.93 | 1.00 | 0.92 | 0.98 |
-| **Flow** | 0.92 | 0.93 | 0.98 | 0.99 | 0.98 |
-| **Comm** | **0.82** | 0.83 | 0.98 | 0.95 | 0.99 |
+Asymmetric: Commercial→GAN gives 0.60, barely above chance, while LatDiff/Flow/Commercial form
+a mutually-transferable cluster (0.87–0.97) that GAN sits outside. Mean off-diagonal by backbone:
+0.844 CLIP, 0.812 SigLIP2, 0.768 DINOv2, 0.763 MAE, 0.758 ViT.
 
-`cf_gallery.py` (in-distribution, single sample): the whitened direction and the MLP miss
-largely the *same* fakes (Jaccard 0.66) — both read the same seen-fake axis — while
-Mahalanobis distance-to-real misses different ones (0.11–0.15), weak where they are strong
-(PixelDiff) and strong where they are weak (Commercial). Only 5 of 47 errors are missed by
-all three. *Small counts — a diagnostic, not a measured claim.*
+`analysis/twonn.py`: every fake family sits on a lower-dimensional manifold than the reals
+(19.9 vs 13.2–18.2 at layer 12, CLIP), but the gap does not order families the way transfer
+difficulty does. `analysis/alignment.py` is a consistency check, not a result — the quantity it
+correlates is close to true by construction.
 
 </details>
 
 ## Running it
 
-Features are extracted once per backbone, then re-drawn and analyzed many times
-(`--seed` = a fresh draw). Each experiment writes `figures/<name>_<backbone>.json` and a PNG.
-
 ```bash
-python experiments/build_maps.py                           # one-time: shard metadata
-python experiments/prepare_cf.py                           # download shards -> feature caches
-python experiments/compose_cf.py --backbone clip --seed 0   # generator-balanced dataset
-python experiments/cf_whiten.py  --backbone clip --seeds 5  # headline result
-python -m pytest tests/
+scripts/reproduce.sh all        # or: provenance | maps | extract | compose | analysis
+```
+Individual stages run from the repo root as modules
+(`python -m analysis.whiten --backbone clip --seeds 5`, `python tests/test_cf_data.py`).
+
+```
+scripts/     reproduce.sh — one entry point
+pipeline/    build_maps -> extract -> compose
+analysis/    whiten (headline), transfer, subspace, lid, twonn, directions, alignment, ensemble
+utils/       geometry (d and w), backbones, heads, split budget, paths, figures
+data/        maps, features, composed draws (gitignored)
 ```
 
-Other analyses share the `--backbone` / `--seeds` flags: `cf_matrix`, `cf_directions`,
-`cf_subspace`, `cf_generational`, `cf_twonn`, `cf_ensemble`, `cf_finetune`, `cf_gallery`.
-Shared code is in `utils/` — `geometry.py` (the directions), `backbones.py` (feature
-extraction), `heads.py` (MLP probe).
+Features are extracted once per backbone, then re-drawn many times (`--seed` = a fresh draw).
+All analyses share one split budget (`utils/cf_data.py`) so numbers are comparable across files,
+and every probe trains on a 1:1 real/fake pool. Each writes a JSON and a 300-dpi PNG to
+`figures/`; **[`figures/README.md`](figures/README.md) says what each one shows and what to look
+for.**
 
-One caveat worth flagging in the repo itself: `cf_transfer_predictor.py` tests whether
-geometric alignment predicts cross-generator transfer. It does, but for a linear score that
-is close to true by construction, so it is kept as a consistency check rather than a result.
