@@ -35,3 +35,14 @@ hf_cache/
 
 # mac
 .DS_Store
+
+
+*.log
+# experiment logs
+log/
+
+# local knowledge log
+notes.txt
+
+# local code-review audit log
+notes_review.txt
